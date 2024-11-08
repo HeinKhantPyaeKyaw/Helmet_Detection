@@ -3,7 +3,7 @@ from tkinter import ttk
 
 # Create the main window
 window = tk.Tk()
-window.title("Helmet Detection System")
+window.title("QuadLink Helmet Detection System")
 window.geometry("800x600")
 # window.pack_propagate(False)
 

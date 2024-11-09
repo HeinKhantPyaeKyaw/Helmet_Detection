@@ -1,5 +1,8 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, filedialog
+import alarm_functions
+import video_capture
+
 
 # Create the main window
 window = tk.Tk()
@@ -27,15 +30,20 @@ frame_label1 = tk.Label(video_frame, text="Video Capture Frame", font=("Arial", 
 frame_label1.grid(row=0, column=0, pady=10)
 alarmNoti_label = tk.Label(video_frame, text="Alarm: ", font=("Arial", 20), fg="white", background="#545454")
 alarmNoti_label.grid(row=0, column=1, pady=10)
-video_capture_frame= tk.Frame(video_frame,background="red", width=400, height=400)
-video_capture_frame.grid(row=1, column=0, columnspan=3, pady=10, sticky="nsew")
+# ------------------Video Capture Frame------------------
+video_canvas = tk.Canvas(video_frame, width=400, height=400, background="black")
+video_canvas.grid(row=1, column=0, columnspan=3, sticky="nsew", pady=10)
+
+# Capture Date and Time Label
 capture_datetime_label = tk.Label(video_frame, text="Capture Date and Time", font=("Arial", 15), fg="white", background="#545454")
 capture_datetime_label.grid(row=2, column=0, columnspan=3, pady=10)
+
+
 
 # Indicator Light
 my_canvas = tk.Canvas(video_frame, width=50, height=50, background="#545454", bd=0, highlightthickness=0)
 my_canvas.grid(row=0, column=2, pady=10)
-indicator = my_canvas.create_oval(10, 10, 40, 40, fill="red")
+indicator = my_canvas.create_oval(10, 10, 40, 40, fill="green", tags="indicator")
 
 
 
@@ -60,8 +68,26 @@ passenger_violation_frame.place(relx=0, rely=0.52, relwidth=1.0, relheight=0.4, 
 passenger_violation_label = tk.Label(passenger_violation_frame, text="Passenger Violation", font=("Arial", 12), background="#a6a6a6")
 passenger_violation_label.grid(row=0, column=0)
 # Alarm Label
-alarm_label = tk.Label(violation_frame, text="Alarm", font=("Arial", 15), background="#545454", fg="white")
-alarm_label.grid(row=3, column=0, pady=10)
+# alarm_label = tk.Label(violation_frame, text="Alarm", font=("Arial", 15), background="#545454", fg="white")
+# alarm_label.grid(row=3, column=0, pady=10)
+
+# Button to simulate a helmet violation
+handle_violation_button = tk.Button(video_frame, text="Simulate Helmet Violation",
+                                    command=lambda: alarm_functions.handle_violation(my_canvas))
+handle_violation_button.grid(row=3, column=0, pady=10)
+
+# Button to reset the indicator light to green
+reset_button = tk.Button(video_frame, text="Reset Indicator",
+                         command=lambda: alarm_functions.reset_indicator(my_canvas))
+reset_button.grid(row=3, column=1, pady=10)
+
+# Button to start live video
+live_video_btn = tk.Button(video_frame, text="Start Live Video", command=lambda: video_capture.start_live_video(video_canvas))
+live_video_btn.grid(row=4, column=0, pady=10)
+
+# Button to upload video
+upload_video_btn = tk.Button(video_frame, text="Upload Video", command=lambda: video_capture.upload_video(video_canvas))
+upload_video_btn.grid(row=4, column=1, pady=10)
 
 
 #------------------Record Tab------------------

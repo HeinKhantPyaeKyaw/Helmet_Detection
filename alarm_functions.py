@@ -4,7 +4,7 @@ import tkinter as tk
 def change_indicator_color(canvas, color):
   canvas.itemconfig("indicator", fill=color)
   
-# Update the indicator light to red because of violation
+# Update the indicator light to red because of violation``
 def handle_violation(canvas):
   change_indicator_color(canvas, "red")
   

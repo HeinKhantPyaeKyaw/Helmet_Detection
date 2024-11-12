@@ -124,7 +124,7 @@ data = [
     ["Image1", "F1", "2021-09-01 12:00:00", "Location1", "Helmet Violation"],
     ["Image2", "F2", "2021-09-01 12:00:00", "Location2", "Helmet Violation"],
     ["Image3", "F3", "2021-09-01 12:00:00", "Location3", "Passenger Violation"],
-    
+   
 ]
 
 count = 0

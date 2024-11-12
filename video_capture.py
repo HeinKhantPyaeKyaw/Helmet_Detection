@@ -2,11 +2,14 @@ import cv2
 from PIL import Image, ImageTk
 import tkinter as tk
 from tkinter import filedialog
+from ultralytics import YOLO
 
 # Global Variables for Video Capture
 cap = None
 playing_video = False
 video_fps = 30
+
+model = YOLO('best.pt')
 
 # Function to start live video capture
 def start_live_video(video_canvas):
@@ -30,12 +33,15 @@ def upload_video(video_canvas):
     fps = cap.get(cv2.CAP_PROP_FPS)
     video_fps = fps if fps > 0 else 30
     playing_video = True
+    
+    
   
   show_video(video_canvas)
 
 
 # Show Video
 def show_video(video_canvas, fps=None):
+  cnt = 0
   global cap, playing_video, video_fps
   ret, frame = cap.read()
   if not ret:
@@ -68,10 +74,20 @@ def show_video(video_canvas, fps=None):
   y_pos = (canvas_height - new_height)//2
   
   # Display the video feed
-  video_canvas.create_image(x_pos, y_pos, image=img_tk, anchor="nw")
-  video_canvas.img = img_tk
+  # video_canvas.create_image(x_pos, y_pos, image=img_tk, anchor="nw")
+  # video_canvas.img = img_tk
   
+  results = model(frame_rgb)
+  frm = results[0].plot()
+  frm_img = Image.fromarray(frm)
+  frm_img_tk = ImageTk.PhotoImage(image=frm_img)
   
+  video_canvas.create_image(x_pos, y_pos, image=frm_img_tk, anchor="nw")
+  video_canvas.img = frm_img_tk 
+  
+  # cv2.imwrite('output_{cnt}.jpg', frm)
+  
+  # video_canvas.img = cv2.cvtColor(frm, cv2.COLOR_BGR2RGB)
   
   if fps is not None:
     video_fps = fps  

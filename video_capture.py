@@ -37,6 +37,15 @@ def upload_video(video_canvas):
     
   
   show_video(video_canvas)
+  
+# Function to check if two classes are overlapping or not
+def is_intersecting(box1, box2):
+  x1_min, y1_min, x1_max, y1_max = box1
+  x2_min, y2_min, x2_max, y2_max = box2
+  
+  if x1_min > x2_max or x2_min > x1_max or y1_min > y2_max or y2_min > y1_max:
+    return False
+  return True
 
 
 # Show Video
@@ -81,6 +90,43 @@ def show_video(video_canvas, fps=None):
   frm = results[0].plot()
   frm_img = Image.fromarray(frm)
   frm_img_tk = ImageTk.PhotoImage(image=frm_img)
+  
+  # for class_id, class_name in model.names.items():
+  #   print(f"Class ID: {class_id}, Class Name: {class_name}")
+  
+  # Boxes for classes
+  no_helmet_boxes = []
+  helmet_boxes = []
+  motorcycle_boxes = []
+  
+  for detection in results[0].boxes:
+    class_id = int (detection.cls)
+    box = detection.xyxy[0].tolist()
+    
+    # Check if teh class is no_helmet or "motorcycle"
+    if class_id == 2:
+      no_helmet_boxes.append(box)
+    elif class_id == 1:
+      helmet_boxes.append(box)
+    elif class_id == 0:
+      motorcycle_boxes.append(box)
+      
+  # Check if the helmet and motorcycle boxes are overlapping
+  # for helmet_box in helmet_boxes:
+  #   for motorcycle_box in motorcycle_boxes:
+      
+  # Check if the no_helmet and motorcycle boxes are overlapping
+  violation_img = None
+  for no_helmet_box in no_helmet_boxes:
+    for motorcycle_box in motorcycle_boxes:
+      if is_intersecting(no_helmet_box, motorcycle_box):
+        violation_img = Image.fromarray(frm)
+        # sliced_violated_img = violation_img.crop(int(motorcycle_box[0]), int(motorcycle_box[1]), int(motorcycle_box[2]), int(motorcycle_box[3]))
+        violation_img_tk = ImageTk.PhotoImage(image=sliced_violated_img)
+        cv2.imwrite(f"violation{violation_img_tk}.jpg", frm)
+        print("Violation Detected!")
+        
+  # cv2.imwrite(f"test{violation_img_tk}.jpg", frm)
   
   video_canvas.create_image(x_pos, y_pos, image=frm_img_tk, anchor="nw")
   video_canvas.img = frm_img_tk 

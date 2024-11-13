@@ -62,6 +62,7 @@ helmet_violation_frame = tk.Frame(violation_frame, background="#a6a6a6")
 helmet_violation_frame.place(relx=0, rely=0.1, relwidth=1.0, relheight=0.4, anchor="nw")
 helmet_violation_label = tk.Label(helmet_violation_frame, text="Helmet Violation", font=("Arial", 12), background="#a6a6a6")
 helmet_violation_label.grid(row=0, column=0)
+
 # Passenger violation capture frame
 passenger_violation_frame = tk.Frame(violation_frame, background="#a6a6a6")
 passenger_violation_frame.place(relx=0, rely=0.52, relwidth=1.0, relheight=0.4, anchor="nw")
@@ -82,11 +83,11 @@ reset_button = tk.Button(video_frame, text="Reset Indicator",
 reset_button.grid(row=3, column=1, pady=10)
 
 # Button to start live video
-live_video_btn = tk.Button(video_frame, text="Start Live Video", command=lambda: video_capture.start_live_video(video_canvas))
+live_video_btn = tk.Button(video_frame, text="Start Live Video", command=lambda: video_capture.start_live_video(video_canvas,))
 live_video_btn.grid(row=4, column=0, pady=10)
 
 # Button to upload video
-upload_video_btn = tk.Button(video_frame, text="Upload Video", command=lambda: video_capture.upload_video(video_canvas))
+upload_video_btn = tk.Button(video_frame, text="Upload Video", command=lambda: video_capture.upload_video(video_canvas,))
 upload_video_btn.grid(row=4, column=1, pady=10)
 
 

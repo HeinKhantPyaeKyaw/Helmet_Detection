@@ -59,8 +59,8 @@ upload_video_btn = tk.Button(video_frame, text="Upload Video", command=lambda: v
 upload_video_btn.grid(row=3, column=1, pady=10)
 
 # Button to stop video
-upload_video_btn = tk.Button(video_frame, text="Stop", command=lambda: video_capture.stop_video(video_canvas,))
-upload_video_btn.grid(row=3, column=2, pady=10)
+stop_video_btn = tk.Button(video_frame, text="Stop", command=lambda: video_capture.stop_video())
+stop_video_btn.grid(row=3, column=2, pady=10)
 
 
 

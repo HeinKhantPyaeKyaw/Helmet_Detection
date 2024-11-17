@@ -3,13 +3,17 @@ from PIL import Image, ImageTk
 import tkinter as tk
 from tkinter import filedialog
 from ultralytics import YOLO
+from datetime import datetime
 
 # Global Variables for Video Capture
 cap = None
 playing_video = False
 video_fps = 30
+# saved_violation_ids = set()
+active_violations_dict = {}
+filtered_violations_dict = {}
 
-model = YOLO('best.pt')
+model = YOLO('it17.pt')
 
 # Function to start live video capture
 def start_live_video(video_canvas):
@@ -47,11 +51,21 @@ def is_intersecting(box1, box2):
     return False
   return True
 
+def save_violation(violation_id, img, violation_type):
+  global active_violations_dict
+  global filtered_violations_dict
+  
+  timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+  
+  if violation_id not in active_violations_dict:
+    active_violations_dict[violation_id] = {"violation_type" : violation_type, "image" : img, "timestamp" : timestamp}
+  else:
+    print("Violation already detected for ID: {violation_id}")
+    return
 
 # Show Video
 def show_video(video_canvas, fps=None):
-  cnt = 0
-  global cap, playing_video, video_fps
+  global cap, playing_video, video_fps, active_violations_dict, filtered_violations_dict
   ret, frame = cap.read()
   if not ret:
     print("Error: Cannot read the frame")
@@ -82,58 +96,53 @@ def show_video(video_canvas, fps=None):
   x_pos = (canvas_width - new_width)//2
   y_pos = (canvas_height - new_height)//2
   
-  # Display the video feed
-  # video_canvas.create_image(x_pos, y_pos, image=img_tk, anchor="nw")
-  # video_canvas.img = img_tk
-  
-  results = model(frame_rgb)
+  results = model.track(frame_rgb, persist=True)
   frm = results[0].plot()
   frm_img = Image.fromarray(frm)
   frm_img_tk = ImageTk.PhotoImage(image=frm_img)
-  
-  # for class_id, class_name in model.names.items():
-  #   print(f"Class ID: {class_id}, Class Name: {class_name}")
   
   # Boxes for classes
   no_helmet_boxes = []
   helmet_boxes = []
   motorcycle_boxes = []
+  # current_ids = set()
   
   for detection in results[0].boxes:
     class_id = int (detection.cls)
     box = detection.xyxy[0].tolist()
+    # track_id = detection.id
+    track_id = int(detection.id.item()) if detection.id is not None else None
+
+    
+    if track_id is None:
+      continue
+    # current_ids.add(track_id)
     
     # Check if teh class is no_helmet or "motorcycle"
     if class_id == 2:
-      no_helmet_boxes.append(box)
+      no_helmet_boxes.append((box, track_id))
     elif class_id == 1:
       helmet_boxes.append(box)
     elif class_id == 0:
-      motorcycle_boxes.append(box)
-      
-  # Check if the helmet and motorcycle boxes are overlapping
-  # for helmet_box in helmet_boxes:
-  #   for motorcycle_box in motorcycle_boxes:
+      motorcycle_boxes.append((box, track_id))
       
   # Check if the no_helmet and motorcycle boxes are overlapping
   violation_img = None
-  for no_helmet_box in no_helmet_boxes:
-    for motorcycle_box in motorcycle_boxes:
+  for motorcycle_box, motorcycle_id in motorcycle_boxes:
+    for no_helmet_box, no_helmet_id in no_helmet_boxes: 
       if is_intersecting(no_helmet_box, motorcycle_box):
-        violation_img = Image.fromarray(frm)
-        # sliced_violated_img = violation_img.crop(int(motorcycle_box[0]), int(motorcycle_box[1]), int(motorcycle_box[2]), int(motorcycle_box[3]))
-        violation_img_tk = ImageTk.PhotoImage(image=sliced_violated_img)
-        cv2.imwrite(f"violation{violation_img_tk}.jpg", frm)
-        print("Violation Detected!")
-        
-  # cv2.imwrite(f"test{violation_img_tk}.jpg", frm)
+          x1, y1, x2, y2 = map(int, motorcycle_box)
+          cropped_img = cv2.cvtColor(frame_rgb[y1:y2, x1:x2], cv2.COLOR_RGB2BGR)
+          violation_img = Image.fromarray(cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR))
+          violation_img_tk = ImageTk.PhotoImage(image=violation_img)
+          violation_type = "No Helmet Violation"
+          save_violation(motorcycle_id, violation_img, violation_type)
+          cv2.imwrite(f"violation{motorcycle_id}.jpg", cropped_img)
+          
   
+  print (active_violations_dict)
   video_canvas.create_image(x_pos, y_pos, image=frm_img_tk, anchor="nw")
   video_canvas.img = frm_img_tk 
-  
-  # cv2.imwrite('output_{cnt}.jpg', frm)
-  
-  # video_canvas.img = cv2.cvtColor(frm, cv2.COLOR_BGR2RGB)
   
   if fps is not None:
     video_fps = fps  

@@ -7,7 +7,7 @@ import video_capture
 # Create the main window
 window = tk.Tk()
 window.title("QuadLink Helmet Detection System")
-window.geometry("800x600")
+window.geometry("1400x800")
 # window.pack_propagate(False)
 
 # Create two tabs for Monitor and Records
@@ -31,7 +31,7 @@ frame_label1.grid(row=0, column=0, pady=10)
 alarmNoti_label = tk.Label(video_frame, text="Alarm: ", font=("Arial", 20), fg="white", background="#545454")
 alarmNoti_label.grid(row=0, column=1, pady=10)
 # ------------------Video Capture Frame------------------
-video_canvas = tk.Canvas(video_frame, width=400, height=400, background="black")
+video_canvas = tk.Canvas(video_frame, width=640, height=480, background="black")
 video_canvas.grid(row=1, column=0, columnspan=3, sticky="nsew", pady=10)
 
 # Capture Date and Time Label

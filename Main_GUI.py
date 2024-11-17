@@ -2,7 +2,11 @@ import tkinter as tk
 from tkinter import ttk, filedialog
 import alarm_functions
 import video_capture
+import sqlite3
 
+db_path = "helmet_detection.db"
+conn = sqlite3.connect(db_path)
+cursor = conn.cursor()
 
 # Create the main window
 window = tk.Tk()
@@ -46,6 +50,17 @@ my_canvas.grid(row=0, column=2, pady=10)
 indicator = my_canvas.create_oval(10, 10, 40, 40, fill="green", tags="indicator")
 
 
+# Button to start live video
+live_video_btn = tk.Button(video_frame, text="Start Live Video", command=lambda: video_capture.start_live_video(video_canvas,))
+live_video_btn.grid(row=3, column=0, pady=10)
+
+# Button to upload video
+upload_video_btn = tk.Button(video_frame, text="Upload Video", command=lambda: video_capture.upload_video(video_canvas,))
+upload_video_btn.grid(row=3, column=1, pady=10)
+
+# Button to stop video
+upload_video_btn = tk.Button(video_frame, text="Stop", command=lambda: video_capture.stop_video(video_canvas,))
+upload_video_btn.grid(row=3, column=2, pady=10)
 
 
 
@@ -72,23 +87,6 @@ passenger_violation_label.grid(row=0, column=0)
 # alarm_label = tk.Label(violation_frame, text="Alarm", font=("Arial", 15), background="#545454", fg="white")
 # alarm_label.grid(row=3, column=0, pady=10)
 
-# Button to simulate a helmet violation
-handle_violation_button = tk.Button(video_frame, text="Simulate Helmet Violation",
-                                    command=lambda: alarm_functions.handle_violation(my_canvas))
-handle_violation_button.grid(row=3, column=0, pady=10)
-
-# Button to reset the indicator light to green
-reset_button = tk.Button(video_frame, text="Reset Indicator",
-                         command=lambda: alarm_functions.reset_indicator(my_canvas))
-reset_button.grid(row=3, column=1, pady=10)
-
-# Button to start live video
-live_video_btn = tk.Button(video_frame, text="Start Live Video", command=lambda: video_capture.start_live_video(video_canvas,))
-live_video_btn.grid(row=4, column=0, pady=10)
-
-# Button to upload video
-upload_video_btn = tk.Button(video_frame, text="Upload Video", command=lambda: video_capture.upload_video(video_canvas,))
-upload_video_btn.grid(row=4, column=1, pady=10)
 
 
 #------------------Record Tab------------------
@@ -99,44 +97,56 @@ upload_video_btn.grid(row=4, column=1, pady=10)
 my_tree = ttk.Treeview(records_tab)
 
 # Define Columns
-my_tree['columns'] = ("Image", "ID", "File Name", "Timestamp", "Location", "Violation")
+my_tree['columns'] = ("ID", "File Name", "Image",  "Timestamp", "Violation")
 
 # Format Columns
 my_tree.column("#0", width=0, minwidth=50, stretch=tk.NO)
-my_tree.column("Image", anchor="w", width=100)
-my_tree.column("ID", anchor="center", width=100)
+my_tree.column("ID", anchor="center", width=50)
 my_tree.column("File Name", anchor="w", width=140)
+my_tree.column("Image", anchor="w", width=180)
 my_tree.column("Timestamp", anchor="w", width=140)
-my_tree.column("Location", anchor="w", width=140)
 my_tree.column("Violation", anchor="w", width=140)
 
 # Create Headings
 my_tree.heading("#0", text="", anchor="w")
-my_tree.heading("Image", text="Image", anchor="w")
 my_tree.heading("ID", text="ID", anchor="center")
 my_tree.heading("File Name", text="File Name", anchor="w")
+my_tree.heading("Image", text="Image", anchor="w")
 my_tree.heading("Timestamp", text="Timestamp", anchor="w")
-my_tree.heading("Location", text="Location", anchor="w")
 my_tree.heading("Violation", text="Violation", anchor="w")
 
 # Add Data
 
-data = [
-    ["Image1", "F1", "2021-09-01 12:00:00", "Location1", "Helmet Violation"],
-    ["Image2", "F2", "2021-09-01 12:00:00", "Location2", "Helmet Violation"],
-    ["Image3", "F3", "2021-09-01 12:00:00", "Location3", "Passenger Violation"],
-   
-]
 
-count = 0
-for record in data:
-    my_tree.insert(parent='', index='end', iid=count, text="", values=(record[0], count, record[1], record[2], record[3], record[4]))
-    count += 1
+# Function to fetch data from database
+def fetch_violation_data():
+    query = "SELECT id, filename, image_path, violation_timestamp, violation_type FROM helmet_detection"
+    cursor.execute(query)
+    return cursor.fetchall()
+
+# Populate the Treeview
+def populate_treeview(my_tree):
+    for record in my_tree.get_children():
+        my_tree.delete(record)
+        
+    data = fetch_violation_data()
+    
+    for record in data:
+        my_tree.insert(parent='', index='end', iid=record[0], text="", values=(record[0],  record[1], record[2], record[3], record[4]))
 
 
 
 my_tree.pack(pady=20)
-
+populate_treeview(my_tree)
 
 
 window.mainloop()
+
+# data = [
+#     ["F1", "Image1", "2021-09-01 12:00:00", "Helmet Violation"],
+#     ["F2", "Image2", "2021-09-01 12:00:00", "Helmet Violation"],
+#     ["F3", "Image3", "2021-09-01 12:00:00", "Passenger Violation"],
+   
+# ]
+
+# count = 0

@@ -4,6 +4,8 @@ import tkinter as tk
 from tkinter import filedialog
 from ultralytics import YOLO
 from datetime import datetime
+import sqlite3
+import os
 
 # Global Variables for Video Capture
 cap = None
@@ -14,6 +16,23 @@ active_violations_dict = {}
 filtered_violations_dict = {}
 
 model = YOLO('it17.pt')
+
+db_path = "helmet_detection.db"
+conn = sqlite3.connect(db_path)
+cursor = conn.cursor()
+
+# Create the table if it does not exist
+cursor.execute(''' 
+               CREATE TABLE IF NOT EXISTS helmet_detection(
+                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                 filename TEXT NOT NULL,
+                 image_path TEXT NOT NULL,
+                 violation_type TEXT NOT NULL,
+                 violation_timestamp TEXT NOT NULL
+                  )
+                 ''')
+
+conn.commit()
 
 # Function to start live video capture
 def start_live_video(video_canvas):
@@ -56,9 +75,17 @@ def save_violation(violation_id, img, violation_type):
   global filtered_violations_dict
   
   timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+  img_folder = "violation_images"
+  file_name = f"violation_{violation_id}.jpg"
+  os.makedirs(img_folder, exist_ok=True)
+  img_path = os.path.join(img_folder, f"violation_{violation_id}.jpg")
+  img.save(img_path)
+  
   
   if violation_id not in active_violations_dict:
-    active_violations_dict[violation_id] = {"violation_type" : violation_type, "image" : img, "timestamp" : timestamp}
+    active_violations_dict[violation_id] = {"violation_type" : violation_type, "image_path" : img_path, "timestamp" : timestamp}
+    cursor.execute("INSERT INTO helmet_detection(filename, image_path, violation_type, violation_timestamp) VALUES(?, ?, ?, ?)", (file_name, img_path, violation_type, timestamp))
+    conn.commit()
   else:
     print("Violation already detected for ID: {violation_id}")
     return

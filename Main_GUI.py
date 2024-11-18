@@ -3,6 +3,7 @@ from tkinter import ttk, filedialog
 import alarm_functions
 import video_capture
 import sqlite3
+from PIL import Image, ImageTk
 
 db_path = "helmet_detection.db"
 conn = sqlite3.connect(db_path)
@@ -11,7 +12,7 @@ cursor = conn.cursor()
 # Create the main window
 window = tk.Tk()
 window.title("QuadLink Helmet Detection System")
-window.geometry("1400x800")
+window.geometry("720x600")
 # window.pack_propagate(False)
 
 # Create two tabs for Monitor and Records
@@ -64,25 +65,25 @@ stop_video_btn.grid(row=3, column=2, pady=10)
 
 
 
-# Violation Information Frame
-violation_frame = tk.Frame(monitor_tab, background="#545454")
-violation_frame.pack(side="right", fill="both", expand=True)
-violation_frame.grid_rowconfigure(1, weight=1)   # Allow row 1 to expand vertically
-violation_frame.grid_columnconfigure(0, weight=1)
-# Saved Capture Label
-frame_label2 = tk.Label(violation_frame, text="Saved Captures", font=("Arial", 20), fg="white", background="#545454")
-frame_label2.grid(row=0, column=0, pady=10)
-# Helmet violation capture frame
-helmet_violation_frame = tk.Frame(violation_frame, background="#a6a6a6")
-helmet_violation_frame.place(relx=0, rely=0.1, relwidth=1.0, relheight=0.4, anchor="nw")
-helmet_violation_label = tk.Label(helmet_violation_frame, text="Helmet Violation", font=("Arial", 12), background="#a6a6a6")
-helmet_violation_label.grid(row=0, column=0)
+# # Violation Information Frame
+# violation_frame = tk.Frame(monitor_tab, background="#545454")
+# violation_frame.pack(side="right", fill="both", expand=True)
+# violation_frame.grid_rowconfigure(1, weight=1)   # Allow row 1 to expand vertically
+# violation_frame.grid_columnconfigure(0, weight=1)
+# # Saved Capture Label
+# frame_label2 = tk.Label(violation_frame, text="Saved Captures", font=("Arial", 20), fg="white", background="#545454")
+# frame_label2.grid(row=0, column=0, pady=10)
+# # Helmet violation capture frame
+# helmet_violation_frame = tk.Frame(violation_frame, background="#a6a6a6")
+# helmet_violation_frame.place(relx=0, rely=0.1, relwidth=1.0, relheight=0.4, anchor="nw")
+# helmet_violation_label = tk.Label(helmet_violation_frame, text="Helmet Violation", font=("Arial", 12), background="#a6a6a6")
+# helmet_violation_label.grid(row=0, column=0)
 
-# Passenger violation capture frame
-passenger_violation_frame = tk.Frame(violation_frame, background="#a6a6a6")
-passenger_violation_frame.place(relx=0, rely=0.52, relwidth=1.0, relheight=0.4, anchor="nw")
-passenger_violation_label = tk.Label(passenger_violation_frame, text="Passenger Violation", font=("Arial", 12), background="#a6a6a6")
-passenger_violation_label.grid(row=0, column=0)
+# # Passenger violation capture frame
+# passenger_violation_frame = tk.Frame(violation_frame, background="#a6a6a6")
+# passenger_violation_frame.place(relx=0, rely=0.52, relwidth=1.0, relheight=0.4, anchor="nw")
+# passenger_violation_label = tk.Label(passenger_violation_frame, text="Passenger Violation", font=("Arial", 12), background="#a6a6a6")
+# passenger_violation_label.grid(row=0, column=0)
 # Alarm Label
 # alarm_label = tk.Label(violation_frame, text="Alarm", font=("Arial", 15), background="#545454", fg="white")
 # alarm_label.grid(row=3, column=0, pady=10)
@@ -95,6 +96,21 @@ passenger_violation_label.grid(row=0, column=0)
 # root.geometry("800x600")
 
 my_tree = ttk.Treeview(records_tab)
+
+# Create a frame for the Treeview header (for the refresh button)
+header_frame = tk.Frame(records_tab)
+header_frame.pack(fill="x", pady=10)
+
+# Add the Refresh Button to the header frame
+refresh_button = tk.Button(
+    header_frame,
+    text="Refresh Records",
+    command=lambda: populate_treeview(my_tree),
+    bg="gray",
+    fg="black",
+    font=("Arial", 12)
+)
+refresh_button.pack(side="right", padx=10)
 
 # Define Columns
 my_tree['columns'] = ("ID", "File Name", "Image",  "Timestamp", "Violation")
@@ -115,9 +131,6 @@ my_tree.heading("Image", text="Image", anchor="w")
 my_tree.heading("Timestamp", text="Timestamp", anchor="w")
 my_tree.heading("Violation", text="Violation", anchor="w")
 
-# Add Data
-
-
 # Function to fetch data from database
 def fetch_violation_data():
     query = "SELECT id, filename, image_path, violation_timestamp, violation_type FROM helmet_detection"
@@ -137,16 +150,62 @@ def populate_treeview(my_tree):
 
 
 my_tree.pack(pady=20)
+
+# Frame for displaying selected record details
+record_detail_frame = tk.Frame(records_tab, background="black")
+record_detail_frame.pack(fill="x", pady=10)
+
+# Add widgets for displaying image and details
+selected_image_label = tk.Label(record_detail_frame, text="Selected Image", background="#f0f0f0")
+selected_image_label.grid(row=0, column=0, padx=10, pady=10)
+
+selected_image_canvas = tk.Canvas(record_detail_frame, width=200, height=150, background="black", highlightthickness=0)
+selected_image_canvas.grid(row=0, column=0, padx=10, pady=10)
+
+record_info_label = tk.Label(
+    record_detail_frame,
+    text="",
+    background="black",
+    foreground="white",
+    font=("Arial", 12),
+    justify="left"
+)
+record_info_label.grid(row=0, column=1, padx=10, pady=10, sticky="nw")
+
+# Function to handle selection
+def display_selected_record(event):
+    selected_item = my_tree.selection()
+    if selected_item:
+        record = my_tree.item(selected_item)["values"]
+        record_id, file_name, image_path, timestamp, violation_type = record
+
+        # Display the image
+        try:
+            img = Image.open(image_path).resize((200, 150))
+            img_tk = ImageTk.PhotoImage(img)
+            selected_image_canvas.image = img_tk  # Keep reference to avoid garbage collection
+            selected_image_canvas.create_image(0, 0, anchor="nw", image=img_tk)
+        except Exception as e:
+            selected_image_canvas.delete("all")
+            selected_image_canvas.create_text(
+                100, 75, text="Image not found", fill="white", font=("Arial", 10)
+            )
+
+        # Update the info label
+        record_info_label.config(
+            text=(
+                f"ID: {record_id}\n"
+                f"File Name: {file_name}\n"
+                f"Timestamp: {timestamp}\n"
+                f"Violation: {violation_type}"
+            )
+        )
+
+# Bind selection event
+my_tree.bind("<<TreeviewSelect>>", display_selected_record)
+
+
 populate_treeview(my_tree)
 
 
 window.mainloop()
-
-# data = [
-#     ["F1", "Image1", "2021-09-01 12:00:00", "Helmet Violation"],
-#     ["F2", "Image2", "2021-09-01 12:00:00", "Helmet Violation"],
-#     ["F3", "Image3", "2021-09-01 12:00:00", "Passenger Violation"],
-   
-# ]
-
-# count = 0

@@ -13,9 +13,10 @@ playing_video = False
 video_fps = 30
 # saved_violation_ids = set()
 active_violations_dict = {}
-filtered_violations_dict = {}
+last_seen_frame_dict = {}
 
-model = YOLO('it17.pt')
+
+model = YOLO('it20.pt')
 
 db_path = "helmet_detection.db"
 conn = sqlite3.connect(db_path)
@@ -81,18 +82,22 @@ def save_violation(violation_id, img, violation_type):
   img_path = os.path.join(img_folder, f"violation_{violation_id}.jpg")
   img.save(img_path)
   
+  cursor.execute("INSERT INTO helmet_detection(filename, image_path, violation_type, violation_timestamp) VALUES (?, ?, ?, ?)", (file_name, img_path, violation_type, timestamp))
+  conn.commit()
   
-  if violation_id not in active_violations_dict:
-    active_violations_dict[violation_id] = {"violation_type" : violation_type, "image_path" : img_path, "timestamp" : timestamp}
-    cursor.execute("INSERT INTO helmet_detection(filename, image_path, violation_type, violation_timestamp) VALUES(?, ?, ?, ?)", (file_name, img_path, violation_type, timestamp))
-    conn.commit()
-  else:
-    print("Violation already detected for ID: {violation_id}")
-    return
+  print(f"Violation ID {violation_id} saved to the database")
+  
+  # if violation_id not in active_violations_dict:
+  #   active_violations_dict[violation_id] = {"violation_type" : violation_type, "image_path" : img_path, "timestamp" : timestamp}
+  #   cursor.execute("INSERT INTO helmet_detection(filename, image_path, violation_type, violation_timestamp) VALUES(?, ?, ?, ?)", (file_name, img_path, violation_type, timestamp))
+  #   conn.commit()
+  # else:
+  #   print("Violation already detected for ID: {violation_id}")
+  #   return
 
 # Show Video
 def show_video(video_canvas, fps=None):
-  global cap, playing_video, video_fps, active_violations_dict, filtered_violations_dict
+  global cap, playing_video, video_fps, active_violations_dict, last_seen_frame_dict
   ret, frame = cap.read()
   if not ret:
     print("Error: Cannot read the frame")
@@ -132,7 +137,7 @@ def show_video(video_canvas, fps=None):
   no_helmet_boxes = []
   helmet_boxes = []
   motorcycle_boxes = []
-  # current_ids = set()
+  current_ids = set()
   
   for detection in results[0].boxes:
     class_id = int (detection.cls)
@@ -143,13 +148,13 @@ def show_video(video_canvas, fps=None):
     
     if track_id is None:
       continue
-    # current_ids.add(track_id)
+    current_ids.add(track_id)
     
     # Check if teh class is no_helmet or "motorcycle"
     if class_id == 2:
       no_helmet_boxes.append((box, track_id))
-    elif class_id == 1:
-      helmet_boxes.append(box)
+    # elif class_id == 1:
+    #   helmet_boxes.append(box)
     elif class_id == 0:
       motorcycle_boxes.append((box, track_id))
       
@@ -162,9 +167,20 @@ def show_video(video_canvas, fps=None):
           cropped_img = cv2.cvtColor(frame_rgb[y1:y2, x1:x2], cv2.COLOR_RGB2BGR)
           violation_img = Image.fromarray(cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR))
           violation_img_tk = ImageTk.PhotoImage(image=violation_img)
-          violation_type = "No Helmet Violation"
-          save_violation(motorcycle_id, violation_img, violation_type)
-          cv2.imwrite(f"violation{motorcycle_id}.jpg", cropped_img)
+          
+          # Store the last frame where the violation was detected
+          last_seen_frame_dict[motorcycle_id] = (violation_img, "No Helmet Violation")
+  
+  # Handle objects that are no longer in the frame
+  inactive_ids = set(active_violations_dict.keys()) - current_ids
+  for inactive_id in inactive_ids:
+    if inactive_id in last_seen_frame_dict:
+      violation_img, violation_type = last_seen_frame_dict.pop(inactive_id)        
+      save_violation(inactive_id, violation_img, violation_type)
+    active_violations_dict.pop(inactive_id)
+    
+  # Update active violations
+  active_violations_dict.update({track_id : True for track_id in current_ids})
           
   
   print (active_violations_dict)

@@ -189,7 +189,7 @@ def show_video(video_canvas, fps=None):
   for inactive_id in inactive_ids:
     if inactive_id in last_seen_frame_dict:
       violation_img, violation_type = last_seen_frame_dict.pop(inactive_id)
-      threading.Thread(target=save_violation, args=(inactive_id, violation_img, violation_type)).start()
+      # threading.Thread(target=save_violation, args=(inactive_id, violation_img, violation_type)).start()
       save_violation(inactive_id, violation_img, violation_type)
     active_violations_dict.pop(inactive_id)
     

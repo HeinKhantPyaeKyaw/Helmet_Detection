@@ -32,9 +32,9 @@ video_frame.pack(side="left", fill="both", expand=True)
 video_frame.grid_rowconfigure(1, weight=1)   # Allow row 1 to expand vertically
 video_frame.grid_columnconfigure(0, weight=1)
 frame_label1 = tk.Label(video_frame, text="Video Capture Frame", font=("Arial", 20), fg="white", background="#545454")
-frame_label1.grid(row=0, column=0, pady=10)
-alarmNoti_label = tk.Label(video_frame, text="Alarm: ", font=("Arial", 20), fg="white", background="#545454")
-alarmNoti_label.grid(row=0, column=1, pady=10)
+frame_label1.grid(row=0, column=0, columnspan=3, pady=10)
+# alarmNoti_label = tk.Label(video_frame, text="Alarm: ", font=("Arial", 20), fg="white", background="#545454")
+# alarmNoti_label.grid(row=0, column=1, pady=10)
 # ------------------Video Capture Frame------------------
 video_canvas = tk.Canvas(video_frame, width=640, height=480, background="black")
 video_canvas.grid(row=1, column=0, columnspan=3, sticky="nsew", pady=10)
@@ -46,9 +46,9 @@ capture_datetime_label.grid(row=2, column=0, columnspan=3, pady=10)
 
 
 # Indicator Light
-my_canvas = tk.Canvas(video_frame, width=50, height=50, background="#545454", bd=0, highlightthickness=0)
-my_canvas.grid(row=0, column=2, pady=10)
-indicator = my_canvas.create_oval(10, 10, 40, 40, fill="green", tags="indicator")
+# my_canvas = tk.Canvas(video_frame, width=50, height=50, background="#545454", bd=0, highlightthickness=0)
+# my_canvas.grid(row=0, column=2, pady=10)
+# indicator = my_canvas.create_oval(10, 10, 40, 40, fill="green", tags="indicator")
 
 
 # Button to start live video
@@ -60,40 +60,10 @@ upload_video_btn = tk.Button(video_frame, text="Upload Video", command=lambda: v
 upload_video_btn.grid(row=3, column=1, pady=10)
 
 # Button to stop video
-stop_video_btn = tk.Button(video_frame, text="Stop", command=lambda: video_capture.stop_video())
+stop_video_btn = tk.Button(video_frame, text="Stop", command=lambda: video_capture.stop_video(video_canvas))
 stop_video_btn.grid(row=3, column=2, pady=10)
 
-
-
-# # Violation Information Frame
-# violation_frame = tk.Frame(monitor_tab, background="#545454")
-# violation_frame.pack(side="right", fill="both", expand=True)
-# violation_frame.grid_rowconfigure(1, weight=1)   # Allow row 1 to expand vertically
-# violation_frame.grid_columnconfigure(0, weight=1)
-# # Saved Capture Label
-# frame_label2 = tk.Label(violation_frame, text="Saved Captures", font=("Arial", 20), fg="white", background="#545454")
-# frame_label2.grid(row=0, column=0, pady=10)
-# # Helmet violation capture frame
-# helmet_violation_frame = tk.Frame(violation_frame, background="#a6a6a6")
-# helmet_violation_frame.place(relx=0, rely=0.1, relwidth=1.0, relheight=0.4, anchor="nw")
-# helmet_violation_label = tk.Label(helmet_violation_frame, text="Helmet Violation", font=("Arial", 12), background="#a6a6a6")
-# helmet_violation_label.grid(row=0, column=0)
-
-# # Passenger violation capture frame
-# passenger_violation_frame = tk.Frame(violation_frame, background="#a6a6a6")
-# passenger_violation_frame.place(relx=0, rely=0.52, relwidth=1.0, relheight=0.4, anchor="nw")
-# passenger_violation_label = tk.Label(passenger_violation_frame, text="Passenger Violation", font=("Arial", 12), background="#a6a6a6")
-# passenger_violation_label.grid(row=0, column=0)
-# Alarm Label
-# alarm_label = tk.Label(violation_frame, text="Alarm", font=("Arial", 15), background="#545454", fg="white")
-# alarm_label.grid(row=3, column=0, pady=10)
-
-
-
 #------------------Record Tab------------------
-
-# root = tk.Tk()
-# root.geometry("800x600")
 
 my_tree = ttk.Treeview(records_tab)
 

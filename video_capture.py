@@ -6,6 +6,9 @@ from ultralytics import YOLO
 from datetime import datetime
 import sqlite3
 import os
+import threading
+import playsound
+import time
 
 # Global Variables for Video Capture
 cap = None
@@ -16,7 +19,8 @@ active_violations_dict = {}
 last_seen_frame_dict = {}
 
 
-model = YOLO('it20.pt')
+
+model = YOLO('it30_best.pt')
 
 db_path = "helmet_detection.db"
 conn = sqlite3.connect(db_path)
@@ -71,6 +75,13 @@ def is_intersecting(box1, box2):
     return False
   return True
 
+def play_alarm_sound():
+  try:
+    playsound.playsound(os.path.abspath("alarm.wav"))
+    print("Alarm sound played")
+  except:
+    print("Error: Cannot play alarm sound")
+
 def save_violation(violation_id, img, violation_type):
   global active_violations_dict
   global filtered_violations_dict
@@ -81,19 +92,12 @@ def save_violation(violation_id, img, violation_type):
   os.makedirs(img_folder, exist_ok=True)
   img_path = os.path.join(img_folder, f"violation_{violation_id}.jpg")
   img.save(img_path)
-  
+  # threading.Thread(target=play_alarm_sound).start()
   cursor.execute("INSERT INTO helmet_detection(filename, image_path, violation_type, violation_timestamp) VALUES (?, ?, ?, ?)", (file_name, img_path, violation_type, timestamp))
   conn.commit()
   
   print(f"Violation ID {violation_id} saved to the database")
   
-  # if violation_id not in active_violations_dict:
-  #   active_violations_dict[violation_id] = {"violation_type" : violation_type, "image_path" : img_path, "timestamp" : timestamp}
-  #   cursor.execute("INSERT INTO helmet_detection(filename, image_path, violation_type, violation_timestamp) VALUES(?, ?, ?, ?)", (file_name, img_path, violation_type, timestamp))
-  #   conn.commit()
-  # else:
-  #   print("Violation already detected for ID: {violation_id}")
-  #   return
 
 # Show Video
 def show_video(video_canvas, fps=None):
@@ -103,7 +107,7 @@ def show_video(video_canvas, fps=None):
     print("Error: Cannot read the frame")
     return
   
-  video_canvas.delete("all")
+  # video_canvas.delete("all")
   
   # Resize the frame to fit the canvas
   canvas_width = video_canvas.winfo_width()
@@ -163,24 +167,34 @@ def show_video(video_canvas, fps=None):
   for motorcycle_box, motorcycle_id in motorcycle_boxes:
     for no_helmet_box, no_helmet_id in no_helmet_boxes: 
       if is_intersecting(no_helmet_box, motorcycle_box):
-          x1, y1, x2, y2 = map(int, motorcycle_box)
-          cropped_img = cv2.cvtColor(frame_rgb[y1:y2, x1:x2], cv2.COLOR_RGB2BGR)
-          violation_img = Image.fromarray(cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR))
-          violation_img_tk = ImageTk.PhotoImage(image=violation_img)
+        if motorcycle_id not in active_violations_dict:
+          # Mark the ID as active and alarm not played
+          active_violations_dict[motorcycle_id] = {"alarm_played": False}
+
+        if not active_violations_dict[motorcycle_id]["alarm_played"]:
+          # Play alarm only once
+          threading.Thread(target=play_alarm_sound).start()
+          active_violations_dict[motorcycle_id]["alarm_played"] = True
+        x1, y1, x2, y2 = map(int, motorcycle_box)
+        cropped_img = cv2.cvtColor(frame_rgb[y1:y2, x1:x2], cv2.COLOR_RGB2BGR)
+        violation_img = Image.fromarray(cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR))
+        violation_img_tk = ImageTk.PhotoImage(image=violation_img)
+        # threading.Thread(target=play_alarm_sound).start()
           
-          # Store the last frame where the violation was detected
-          last_seen_frame_dict[motorcycle_id] = (violation_img, "No Helmet Violation")
+        # Store the last frame where the violation was detected
+        last_seen_frame_dict[motorcycle_id] = (violation_img, "No Helmet Violation")
   
   # Handle objects that are no longer in the frame
   inactive_ids = set(active_violations_dict.keys()) - current_ids
   for inactive_id in inactive_ids:
     if inactive_id in last_seen_frame_dict:
-      violation_img, violation_type = last_seen_frame_dict.pop(inactive_id)        
+      violation_img, violation_type = last_seen_frame_dict.pop(inactive_id)
+      threading.Thread(target=save_violation, args=(inactive_id, violation_img, violation_type)).start()
       save_violation(inactive_id, violation_img, violation_type)
     active_violations_dict.pop(inactive_id)
     
   # Update active violations
-  active_violations_dict.update({track_id : True for track_id in current_ids})
+  active_violations_dict.update({track_id : {"alarm_played": True} for track_id in current_ids})
           
   
   print (active_violations_dict)
@@ -196,9 +210,10 @@ def show_video(video_canvas, fps=None):
   
   
 # Function to stop video capture
-def stop_video():
+def stop_video(video_canvas):
   global cap, playing_video
   if cap:
     cap.release()
   cap = None
   playing_video = False
+  video_canvas.delete("all")
